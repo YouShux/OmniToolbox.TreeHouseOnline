@@ -7,7 +7,7 @@
       "Author": "YouShu",
       "Description": "选择图标并保存图标 ID。",
       "Version": "1.1.0",
-      "MinimumOmniVersion": "1.1.2.10",
+      "MinimumOmniVersion": "1.1.3.0",
       "File": "Modules/OnlineIconExample.cs",
       "Sha256": "B9F1140CC3552352081653938276E4C91F0E3E4FDA81A5A9660C435269F69019"
     }

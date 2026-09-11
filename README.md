@@ -120,7 +120,7 @@ public sealed class OnlineIconExampleConfig
 
 `Info.Commands` 用于展示帮助和复制指令，实际执行由 `TryHandleCommand` 实现。内置指令及 OmenTools 已注册的全局子指令优先，模块类名应避免与它们重名。这个入口无需手动注册和注销，模块卸载后自动停止分发。指令处理应快速返回；修改配置时使用模块自身的保存入口，宿主不会根据返回值自动保存。
 
-此示范需要包含新接口的宿主，发布门槛设为 `1.1.2.10`。已发布的 `1.1.2.9` 不包含该接口；请先随宿主新版本提供接口，再发布此示范更新。
+此示范需要 Omni `1.1.3.0` 或更新版本提供的模块指令接口。
 
 ### 配置与图标浏览器
 
@@ -167,7 +167,7 @@ ReportURL = "https://discord.com/channels/1456729574330077206/145674070610949333
       "Author": "YouShu",
       "Description": "选择图标并保存图标 ID。",
       "Version": "1.1.0",
-      "MinimumOmniVersion": "1.1.2.10",
+      "MinimumOmniVersion": "1.1.3.0",
       "File": "Modules/OnlineIconExample.cs",
       "Sha256": "<替换为实际模块文件的64位SHA256>"
     }
