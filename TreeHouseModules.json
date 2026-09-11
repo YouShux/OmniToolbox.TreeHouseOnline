@@ -6,10 +6,10 @@
       "Name": "在线模块示范",
       "Author": "YouShu",
       "Description": "选择图标并保存图标 ID。",
-      "Version": "1.0.0",
-      "MinimumOmniVersion": "1.1.1.8",
+      "Version": "1.1.0",
+      "MinimumOmniVersion": "1.1.2.10",
       "File": "Modules/OnlineIconExample.cs",
-      "Sha256": "5528C420B4B682CB4369D08934BA009E61A53040D7AF0F37908406A9A835EE97"
+      "Sha256": "B9F1140CC3552352081653938276E4C91F0E3E4FDA81A5A9660C435269F69019"
     }
   ]
 }

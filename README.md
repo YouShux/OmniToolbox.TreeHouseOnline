@@ -46,6 +46,7 @@ OmniToolbox.TreeHouseOnline/
 ### 图标选择示例
 
 ```csharp
+using System;
 using Dalamud.Bindings.ImGui;
 using OmniToolbox.Common.Module.Abstractions;
 using OmniToolbox.Common.Module.Enums;
@@ -61,6 +62,7 @@ public sealed class OnlineIconExample : ModuleBase
         Description = "选择图标并保存图标 ID。",
         Category = ModuleCategory.Interface,
         Author = "YouShu",
+        Commands = [new("打开图标选择器", "/omni OnlineIconExample icon")],
         SupportUrls = ["https://afdian.com/a/YouShu"],
         ReportURL = "https://discord.com/channels/1456729574330077206/1456740706109493339"
     };
@@ -68,6 +70,17 @@ public sealed class OnlineIconExample : ModuleBase
     private OnlineIconExampleConfig config = new();
 
     public override bool HasSettings => true;
+
+    public override bool TryHandleCommand(string arguments)
+    {
+        if (!string.Equals(arguments, "icon", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        OpenIconBrowser(iconID => config.IconID = iconID);
+        return true;
+    }
 
     public override bool DrawSettings()
     {
@@ -98,6 +111,16 @@ public sealed class OnlineIconExampleConfig
     public uint IconID { get; set; }
 }
 ```
+
+### 模块指令
+
+启用示范模块后，输入 `/omni OnlineIconExample icon` 打开图标选择器。选择后沿用原有配置保存流程。`/omni OnlineIconExample` 不带参数时仍是模块开关。
+
+本地和在线模块都可重写 `TryHandleCommand(string arguments)`。宿主按模块类名查找当前实例，将剩余参数传给它；模块只有启用且通过可用性检查后才会收到指令。返回 `true` 表示已处理，`false` 表示交回宿主原有路由。参数错误需要提示时，由模块提示并返回 `true`。
+
+`Info.Commands` 用于展示帮助和复制指令，实际执行由 `TryHandleCommand` 实现。内置指令及 OmenTools 已注册的全局子指令优先，模块类名应避免与它们重名。这个入口无需手动注册和注销，模块卸载后自动停止分发。指令处理应快速返回；修改配置时使用模块自身的保存入口，宿主不会根据返回值自动保存。
+
+此示范需要包含新接口的宿主，发布门槛设为 `1.1.2.10`。已发布的 `1.1.2.9` 不包含该接口；请先随宿主新版本提供接口，再发布此示范更新。
 
 ### 配置与图标浏览器
 
@@ -143,8 +166,8 @@ ReportURL = "https://discord.com/channels/1456729574330077206/145674070610949333
       "Name": "在线模块示范",
       "Author": "YouShu",
       "Description": "选择图标并保存图标 ID。",
-      "Version": "1.0.0",
-      "MinimumOmniVersion": "1.1.1.8",
+      "Version": "1.1.0",
+      "MinimumOmniVersion": "1.1.2.10",
       "File": "Modules/OnlineIconExample.cs",
       "Sha256": "<替换为实际模块文件的64位SHA256>"
     }
