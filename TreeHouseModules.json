@@ -10,6 +10,16 @@
       "MinimumOmniVersion": "1.1.3.0",
       "File": "Modules/OnlineIconExample.cs",
       "Sha256": "B9F1140CC3552352081653938276E4C91F0E3E4FDA81A5A9660C435269F69019"
+    },
+    {
+      "InternalName": "AutoIshgardRestoration",
+      "Name": "自动重建伊修加德",
+      "Author": "Angelways",
+      "Description": "调用 Artisan 制作第四期重建物品，达到条件后自动前往提交，并按票数阈值进行库啵好运道抽奖。仅适用于国服中文客户端。",
+      "Version": "0.1.0.7",
+      "MinimumOmniVersion": "1.1.4.4",
+      "File": "Modules/AutoIshgardRestoration.cs",
+      "Sha256": "6C96A4B882A7B45E0C3A0C70B3E3ACF50A2ED71F07153AE453B42807E38BAD9C"
     }
   ]
 }
