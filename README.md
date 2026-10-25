@@ -43,11 +43,18 @@ https://github.com/YouShux/OmniToolbox.TreeHouseOnline
 
 - 继承 `OmniModuleBase`，在具体模块类上声明 `[ModuleApiVersion(1)]`。外部模块提供公共无参构造，每个发布文件只包含一个可实例化模块。
 - 类型名与清单 `InternalName` 一致。`Info` 填写分类、作者、权限和命令，标题与说明由 `Localization` 提供。
-- `Localization` 必填，在 `SimplifiedChinese` 中提供非空 `Title`、`Description` 和模块使用的显示词条；繁体由 Omni 自动生成，不填写繁体字典。模块词条使用 `OmniLoc.Get(this, key)`，公共词条显式使用 `OmniLoc.Get(key)`。
 - 配置使用内嵌 `Settings`，宿主绑定的成员命名为 `config`。保持已发布的 JSON 键不变，不在构造函数中保存配置引用或启动业务。
 - `.dll` 使用当前 Omni 的 Common 及实际用到的 TreeTools、TreeToolKit 等依赖编译，不把公共库打包进模块。引用旧 Omni 工具或 Omen 原任务类型的 DLL 会被拒载。
 
-### 3. 组织多模块仓库
+### 3. Localization 与简繁转换
+
+- 窗口、按钮、提示、通知和命令说明等用户可见文字不得硬编码。
+- `Localization` 必填，`Title`、`Description` 及模块实际使用的词条全部写入 `SimplifiedChinese`。
+- 模块内使用 `OmniLoc.Get(this, key)`；公共控件文字使用 `OmniLoc.Get(key)`。
+- `Info.Commands` 中引用的说明键必须存在于模块词条中。
+- 作者只需维护一份简体词条，繁体由 Omni 自动转换；下面的完整示例就是唯一示范代码。
+
+### 4. 组织多模块仓库
 
 一个仓库可以发布多个模块。`TreeHouseModules.json` 的 `Modules` 数组中，每个对象对应一个独立模块和一个文件：
 
@@ -55,7 +62,7 @@ https://github.com/YouShux/OmniToolbox.TreeHouseOnline
 TreeHouseOnline/
 ├── TreeHouseModules.json
 ├── Modules/
-│   ├── OnlineIconExample.cs
+│   ├── OnlineIconExample.cs  # 模块与 Localization 在同一文件
 │   └── AnotherModule.cs
 └── Examples/
     └── OnlineLifecycleExample.cs
@@ -64,10 +71,13 @@ TreeHouseOnline/
 - 文件名、类型名和清单 `InternalName` 保持一致。
 - 一个在线 `.cs` 或 `.dll` 只能包含一个可实例化模块。
 - `.cs` 模式按文件独立编译，helper 类型应放在同一文件中；需要跨文件组织时使用 `.dll`。
-- 模块专用配置、面板、节点和 helper 放在对应模块文件或 DLL 内，不复制到 Common。
-- `Examples/` 中的教学代码不加入清单。
+- 在线作者词条放在模块的 `Localization.SimplifiedChinese` 中，不放入官方 `Localizations` 仓库。
+- 模块专用配置、面板、节点、词条和 helper 放在对应模块文件或 DLL 内。
+- `Examples/` 中的教学代码不加入发布清单。
 
-### 4. 不要打包宿主依赖
+`Localization` 是模块类的一部分，不是单独下载的 Loc 文件。增加“选择图标”文字时，在 `SimplifiedChinese` 中加入 `["SelectIcon"] = "选择图标"`，界面通过 `OmniLoc.Get(this, "SelectIcon")` 读取。后续新增文字时继续增加键和值即可。`.cs` 模式不能引用仓库中的另一份 Loc `.cs` 文件；`.dll` 模式可以把词条拆到自己的源码文件或嵌入资源中，但最终必须由模块的 `Localization` 属性返回。
+
+### 5. 不要打包宿主依赖
 
 | 交付方式 | 依赖从哪里来 |
 | --- | --- |
@@ -77,9 +87,9 @@ TreeHouseOnline/
 
 在线模块不需要先手动安装 OmenTools 或 KamiToolKit。只有直接调用它们命名空间中的 API 时，作者代码才需要写对应 `using`；这些程序集仍由 Omni 宿主提供。
 
-### 5. 参考完整模块
+### 6. 参考完整模块
 
-以下完整示例与 [OnlineIconExample.cs](Modules/OnlineIconExample.cs) 一致，发布版本为 **2.0.1**。
+以下完整示例与 [OnlineIconExample.cs](Modules/OnlineIconExample.cs) 一致，发布版本为 **2.0.1**。示例只填写 `SimplifiedChinese`，繁体由 Omni 自动生成。
 
 ```csharp
 using System;
