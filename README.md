@@ -1,8 +1,33 @@
 # OmniToolbox.TreeHouseOnline
 
-Omni Toolbox 树树妙妙屋在线模块示范仓库，提供模块编写、SHA256 校验说明。
+本仓库同时提供可运行的模块示例、生命周期示例和仓库清单格式。当前模块接口为 **API 1**，最低宿主为 Omni **1.1.8.2**。
 
-## 在 Omni 中添加
+## 系统架构
+
+```text
+OmniToolbox
+├── OmniToolbox.Common
+│   ├── Localizations
+│   ├── TreeTools
+│   └── TreeToolKit
+├── OmniToolbox.Tree
+├── OmniToolbox.TreePublic
+└── TreeHouseOnline
+    └── TreeHouseModules.json → 下载、校验、安装
+```
+
+| 项目 | 职责 |
+| --- | --- |
+| [OmniToolbox.Common](https://github.com/YouShux/OmniToolbox.Common) | 模块基类、配置、本地化、共享界面和公共服务 |
+| `OmniToolbox.Tree` | Omni 私有内置模块，不通过在线仓库发布 |
+| [OmniToolbox.TreePublic](https://github.com/YouShux/OmniToolbox.TreePublic) | Omni 公开内置模块，不通过在线仓库发布 |
+| [TreeTools](https://github.com/YouShux/TreeTools) | 生命周期、任务队列、调度与通用工具 |
+| [TreeToolKit](https://github.com/YouShux/TreeToolKit) | Kami 原生界面、窗口、节点和字体 |
+| [Localizations](https://github.com/YouShux/OmniToolbox.Localizations) | 官方公共词条；作者词条随模块交付 |
+
+## 接入流程
+
+### 1. 让 Omni 找到仓库
 
 在“插件设置 → 在线模块”中填写仓库地址：
 
@@ -10,152 +35,142 @@ Omni Toolbox 树树妙妙屋在线模块示范仓库，提供模块编写、SHA2
 https://github.com/YouShux/OmniToolbox.TreeHouseOnline
 ```
 
-Omni 读取默认分支根目录的 `TreeHouseModules.json`，自动下载并安装清单中的模块。
-首次安装后模块默认关闭，在“树树妙妙屋 → 在线”中手动启用。
+支持公开仓库中的 `.cs`、`.dll`。首次安装后默认关闭，在“树树妙妙屋 → 在线”中手动启用。模块拥有与 Omni 相同的运行权限，请安装可信来源。
 
-也可以填写清单的 GitHub 文件页面地址或 raw HTTPS 地址。
-当前支持公开仓库中的 `.cs`、`.dll` 文件，不支持私有仓库、Release 附件或 ZIP。
+地址支持 GitHub 仓库、`blob` 文件和 `raw.githubusercontent.com` 清单。GitHub API 不可用时，仓库地址会自动回退到 raw `main`、`master`；直接填写 raw 清单时保持精确来源。
 
-模块拥有与 Omni 相同的运行权限，没有独立沙箱。仅安装可信来源；
-启用自动更新意味着持续信任该仓库后续发布的代码。
+### 2. 写出可加载的模块
 
-## 仓库结构
+- 继承 `OmniModuleBase`，在具体模块类上声明 `[ModuleApiVersion(1)]`。外部模块提供公共无参构造，每个发布文件只包含一个可实例化模块。
+- 类型名与清单 `InternalName` 一致。`Info` 填写分类、作者、权限和命令，标题与说明由 `Localization` 提供。
+- `Localization` 必填，在 `SimplifiedChinese` 中提供非空 `Title`、`Description` 和模块使用的显示词条；繁体由 Omni 自动生成，不填写繁体字典。模块词条使用 `OmniLoc.Get(this, key)`，公共词条显式使用 `OmniLoc.Get(key)`。
+- 配置使用内嵌 `Settings`，宿主绑定的成员命名为 `config`。保持已发布的 JSON 键不变，不在构造函数中保存配置引用或启动业务。
+- `.dll` 使用当前 Omni 的 Common 及实际用到的 TreeTools、TreeToolKit 等依赖编译，不把公共库打包进模块。引用旧 Omni 工具或 Omen 原任务类型的 DLL 会被拒载。
+
+### 3. 组织多模块仓库
+
+一个仓库可以发布多个模块。`TreeHouseModules.json` 的 `Modules` 数组中，每个对象对应一个独立模块和一个文件：
 
 ```text
-OmniToolbox.TreeHouseOnline/
-  Modules/
-    OnlineIconExample.cs
-  README.md
-  TreeHouseModules.json
+TreeHouseOnline/
+├── TreeHouseModules.json
+├── Modules/
+│   ├── OnlineIconExample.cs
+│   └── AnotherModule.cs
+└── Examples/
+    └── OnlineLifecycleExample.cs
 ```
 
-`Modules` 存放模块文件，根目录的清单描述可下载模块。
-在线模块不是独立 Dalamud 插件，不能直接使用完整插件的 `Pluginmaster.json`。
+- 文件名、类型名和清单 `InternalName` 保持一致。
+- 一个在线 `.cs` 或 `.dll` 只能包含一个可实例化模块。
+- `.cs` 模式按文件独立编译，helper 类型应放在同一文件中；需要跨文件组织时使用 `.dll`。
+- 模块专用配置、面板、节点和 helper 放在对应模块文件或 DLL 内，不复制到 Common。
+- `Examples/` 中的教学代码不加入清单。
 
-## 编写在线模块
+### 4. 不要打包宿主依赖
 
-### 基本要求
+| 交付方式 | 依赖从哪里来 |
+| --- | --- |
+| 在线 `.cs` | Omni 自动提供 Common、TreeTools、TreeToolKit、OmenTools、KamiToolKit 等编译引用 |
+| 在线 `.dll` | 编译时引用当前 Omni 提供的 DLL；发布时只上传模块 DLL，不携带共享库 |
+| 普通用户安装 | 只安装或更新 Omni，不需要额外安装 TreeTools、TreeToolKit、OmenTools 或 KamiToolKit |
 
-- 模块继承 `ModuleBase`，并提供公共无参构造；没有声明构造函数时可以使用默认构造。
-- 每个文件仅包含一个可实例化的 `ModuleBase` 实现，可以包含独立的配置类型等辅助类型。
-- 模块类型名必须与清单的 `InternalName` 完全一致。
-- `Info` 放在类型的首个成员位置，填写名称、说明、分类和作者。
-- DLL 依赖必须由当前 Omni 环境提供；不要依赖下载目录中未被加载的额外程序集。
-- 事件订阅和其他资源须有对应的停用或释放逻辑。
+在线模块不需要先手动安装 OmenTools 或 KamiToolKit。只有直接调用它们命名空间中的 API 时，作者代码才需要写对应 `using`；这些程序集仍由 Omni 宿主提供。
 
-### 图标选择示例
+### 5. 参考完整模块
+
+以下完整示例与 [OnlineIconExample.cs](Modules/OnlineIconExample.cs) 一致，发布版本为 **2.0.1**。
 
 ```csharp
 using System;
+using System.Collections.Generic;
 using Dalamud.Bindings.ImGui;
+using OmniToolbox.Commands;
 using OmniToolbox.Common.Module.Abstractions;
 using OmniToolbox.Common.Module.Enums;
 using OmniToolbox.Common.Module.Models;
+using OmniToolbox.UI;
 
 namespace OmniToolbox.TreeHouseOnline;
 
-public sealed class OnlineIconExample : ModuleBase
+[ModuleApiVersion(1)]
+public sealed class OnlineIconExample : OmniModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
-        Title = "在线模块示范",
-        Description = "选择图标并保存图标 ID。",
         Category = ModuleCategory.Interface,
         Author = "YouShu",
-        Commands = [new("打开图标选择器", "/omni OnlineIconExample icon")],
-        SupportUrls = ["https://afdian.com/a/YouShu"],
-        ReportURL = "https://discord.com/channels/1456729574330077206/1456740706109493339"
+        Commands = [new("OpenIcon", OmniCommandCatalog.FormatModule(nameof(OnlineIconExample), "icon"))]
     };
 
-    private OnlineIconExampleConfig config = new();
+    public override ModuleLocalization Localization { get; } = new()
+    {
+        SimplifiedChinese = new Dictionary<string, string>
+        {
+            ["Title"] = "在线模块示范",
+            ["Description"] = "选择图标并保存图标 ID。",
+            ["OpenIcon"] = "打开图标选择器",
+            ["IconID"] = "图标 ID：{0}",
+            ["SelectIcon"] = "选择图标",
+            ["ClearIcon"] = "清除图标"
+        }
+    };
+
+    private Settings config = new();
 
     public override bool HasSettings => true;
 
     public override bool TryHandleCommand(string arguments)
     {
-        if (!string.Equals(arguments, "icon", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
+        if (!string.Equals(arguments, "icon", StringComparison.OrdinalIgnoreCase)) return false;
         OpenIconBrowser(iconID => config.IconID = iconID);
         return true;
     }
 
     public override bool DrawSettings()
     {
-        ImGui.TextUnformatted($"图标 ID：{config.IconID}");
-        if (ImGui.Button("选择图标"))
-        {
+        ImGui.TextUnformatted(string.Format(OmniLoc.Get(this, "IconID"), config.IconID));
+        if (ImGui.Button(OmniLoc.Get(this, "SelectIcon")))
             OpenIconBrowser(iconID => config.IconID = iconID);
-        }
-
         ImGui.SameLine();
-        if (ImGui.Button("清除图标"))
-        {
-            return ResetSettings();
-        }
-
-        return false;
+        return ImGui.Button(OmniLoc.Get(this, "ClearIcon")) && ResetSettings();
     }
 
     public override bool ResetSettings()
     {
+        if (config.IconID == 0) return false;
         config.IconID = 0;
         return true;
     }
+
+    private sealed class Settings
+    {
+        public uint IconID { get; set; }
+    }
 }
-
-public sealed class OnlineIconExampleConfig
-{
-    public uint IconID { get; set; }
-}
 ```
 
-### 模块指令
+`DrawSettings()` 返回 `true` 时，宿主保存配置；返回 `false` 表示没有变更。`ResetSettings()` 无实际变更时也必须返回 `false`。图标选择回调执行后会保存配置。
 
-启用示范模块后，输入 `/omni OnlineIconExample icon` 打开图标选择器。选择后沿用原有配置保存流程。`/omni OnlineIconExample` 不带参数时仍是模块开关。
+命令通过 `Info.Commands` 声明，`TryHandleCommand` 返回 `true` 仅表示命令已处理，不会自动保存配置。
 
-本地和在线模块都可重写 `TryHandleCommand(string arguments)`。宿主按模块类名查找当前实例，将剩余参数传给它；模块只有启用且通过可用性检查后才会收到指令。返回 `true` 表示已处理，`false` 表示交回宿主原有路由。参数错误需要提示时，由模块提示并返回 `true`。
+## 生命周期与资源
 
-`Info.Commands` 用于展示帮助和复制指令，实际执行由 `TryHandleCommand` 实现。内置指令及 OmenTools 已注册的全局子指令优先，模块类名应避免与它们重名。这个入口无需手动注册和注销，模块卸载后自动停止分发。指令处理应快速返回；修改配置时使用模块自身的保存入口，宿主不会根据返回值自动保存。
+构造函数只准备元数据和普通状态。事件、Hook、节点和后台工作在 `OnStart(FeatureLifetime activation)` 中接入，作用域类型导入 `using TreeTools.Lifecycle;`；没有对应工作时无需重写生命周期方法。
 
-此示范需要 Omni `1.1.3.0` 或更新版本提供的模块指令接口。
+- 接入事件前用 `activation.OnStopping` 登记解绑；取得资源后立即用 `activation.Add` 或 `AddAsync` 登记释放。
+- 必须完成的异步初始化使用 `activation.TrackStartup(task)`；持续任务使用 `Track` 或 `RunBackground`，并响应 `activation.CancellationToken`。
+- 游戏对象和原生 UI 操作在主线程执行。模块由宿主管理，不自行销毁或卸载。
+- 分步队列使用 `TreeTools.Threading.TaskHelper`，创建后立即 `activation.Add(helper)`。宿主会等待任务和取消回调实际结束。
+- 普通启停复用实例，每次启用都会获得新的 `FeatureLifetime`，需要在 `OnStart` 重置该次启用状态。
+- 停用时，宿主先关闭入口并等待任务退出，再调用 `OnStop()`，最后释放本次启用的资源。`OnDestroy()` 只处理实例最终释放。
+- 自停用调用 `RequestEnabled(false)` 后立即返回。生命周期钩子和托管任务不能等待自身停用或同步阻塞异步操作。
 
-### 配置与图标浏览器
+完整用法见 [OnlineLifecycleExample.cs](Examples/OnlineLifecycleExample.cs)。语言切换只刷新文字、别名和搜索缓存，不启停业务模块。
 
-配置类型使用 `Config` 后缀，如 `OnlineIconExampleConfig`。
-保留一个可识别的配置成员，并使用可写字段或属性，便于宿主绑定已保存的配置。
-`DrawSettings()` 返回 `true` 时，宿主保存配置；输入框应在编辑结束或失焦后返回变更。
-不要在构造时把配置对象另外缓存到不会同步更新的字段中。
+## 发布清单
 
-`OpenIconBrowser` 是 `ModuleBase` 的受保护实例方法，在模块内部直接调用：
-
-```csharp
-OpenIconBrowser(iconID => config.IconID = iconID);
-```
-
-它不是 `Omni.OpenIconBrowser`。用户选中图标后执行回调，宿主随后触发配置保存。
-模块停用或卸载时，基类会清理该模块的图标选择回调。
-独立 UI 类需要由模块传入选择委托，不能直接访问此受保护方法。
-
-### 作者支持与反馈
-
-本地模块和在线模块都在 `ModuleInfo` 中填写：
-
-```csharp
-Author = "YouShu",
-SupportUrls = ["https://afdian.com/a/YouShu"],
-ReportURL = "https://discord.com/channels/1456729574330077206/1456740706109493339"
-```
-
-- `SupportUrls`：支持作者的链接列表，点击支持按钮后依次打开。
-- `ReportURL`：该模块的反馈链接。
-- 未填写时使用 Omni 默认地址；`SupportUrls = []` 表示不打开任何支持链接。
-
-## 编写仓库清单
-
-仓库根目录创建 `TreeHouseModules.json`：
+在仓库根目录保存 `TreeHouseModules.json`，完整内容如下：
 
 ```json
 {
@@ -166,99 +181,38 @@ ReportURL = "https://discord.com/channels/1456729574330077206/145674070610949333
       "Name": "在线模块示范",
       "Author": "YouShu",
       "Description": "选择图标并保存图标 ID。",
-      "Version": "1.1.0",
-      "MinimumOmniVersion": "1.1.3.0",
+      "Version": "2.0.1",
+      "ApiVersion": 1,
+      "MinimumOmniVersion": "1.1.8.2",
       "File": "Modules/OnlineIconExample.cs",
-      "Sha256": "<替换为实际模块文件的64位SHA256>"
+      "Sha256": "B0094B16EC454A4CD08476027730BBFF8EF1647751716F726FF94AA30BFD1C71"
     }
   ]
 }
 ```
 
-占位校验值不能直接用于安装，必须按下一节生成后替换。
+`InternalName` 是模块类型名，`File` 是相对仓库根目录的文件路径，`Sha256` 对应最终文件字节。作者支持链接、反馈地址和预览图可选。
 
-| 字段 | 填写要求 |
-| --- | --- |
-| `SchemaVersion` | 当前填写 `1` |
-| `InternalName` | 与模块类型名一致，使用 ASCII 字母、数字和下划线，首字符不能为数字 |
-| `Name`、`Author`、`Description` | 清单中的展示信息，与模块实际信息保持一致 |
-| `Version` | 模块发布版本，使用两至四段非负整数，如 `1.0.0` |
-| `MinimumOmniVersion` | 运行该模块所需的最低 Omni 版本 |
-| `File` | 相对清单的文件路径，或完整 GitHub raw HTTPS 地址 |
-| `Sha256` | 对 `File` 指向的实际文件计算 SHA256 |
+三个版本字段：
 
-`File` 扩展名使用小写 `.cs` 或 `.dll`。单个文件最大 32 MiB；
-清单最大 2 MiB、最多 500 个模块。版本号不使用 `v` 前缀或预发布后缀。
-相同类型名的模块不能同时安装，包括与内置、本地或其他在线仓库的模块重名。
+- `ApiVersion`：模块契约版本，当前必须为 `1`，并与类上的声明一致。
+- `Version`：模块自身版本；本示例为 `2.0.1`，发布修改时递增。
+- `MinimumOmniVersion`：最低宿主版本；新版接口填写 `1.1.8.2`，实际使用更高版本接口时相应提高。
 
-## 生成 SHA256
+`SchemaVersion` 是清单格式版本，保持 `1`。本地与在线模块使用同一接口校验。
 
-SHA256 根据文件的实际字节内容计算，不是 Git 提交号，也不是手动编写的编号。
-Omni 下载后会重新计算并与清单比较，不一致则拒绝安装。
-校验通过只说明文件符合清单，不代表代码安全或作者身份可信。
+## 发布更新
 
-### PowerShell 命令
-
-以本仓库示范文件为例，按实际存放位置修改路径：
+1. 修改模块，使用当前宿主依赖编译检查。
+2. 提高模块 `Version`，核对 `ApiVersion` 和 `MinimumOmniVersion`。
+3. 计算最终文件的 SHA256，并更新清单：
 
 ```powershell
-Get-FileHash -LiteralPath 'E:\XLPlugins\FF XIV\OmniToolbox.TreeHouseOnline\Modules\OnlineIconExample.cs' -Algorithm SHA256
+(Get-FileHash .\Modules\OnlineIconExample.cs -Algorithm SHA256).Hash
 ```
 
-输出中的 `Hash` 就是要填写到 `Sha256` 的值。只显示校验值：
+4. 上传模块文件与清单，在 Omni 中刷新仓库并安装验证。
 
-```powershell
-(Get-FileHash -LiteralPath 'E:\XLPlugins\FF XIV\OmniToolbox.TreeHouseOnline\Modules\OnlineIconExample.cs' -Algorithm SHA256).Hash
-```
+文件内容、换行、编码或 DLL 重新编译后，都必须重新计算摘要。
 
-发布 DLL 时，将路径换成最终上传的 DLL。清单下载什么文件，就计算那个文件，
-不要对整个目录、其他构建产物或 GitHub 的 HTML 展示页面计算摘要。
-
-### 检查文件与清单
-
-以下命令检查示范模块，输出 `True` 表示本地文件与清单一致：
-
-```powershell
-$root = 'E:\XLPlugins\FF XIV\OmniToolbox.TreeHouseOnline'
-$manifest = Get-Content -Raw -LiteralPath (Join-Path $root 'TreeHouseModules.json') | ConvertFrom-Json
-$module = $manifest.Modules | Where-Object InternalName -EQ 'OnlineIconExample'
-$file = Join-Path $root $module.File
-$actual = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
-$actual -eq $module.Sha256
-```
-
-此命令适用于清单中的仓库相对路径，不用于完整 HTTPS 下载地址。
-
-### 校验不一致的常见原因
-
-- 计算后又修改了代码、空格或注释。
-- 文件编码、UTF-8 BOM 或 CRLF / LF 换行符发生变化。
-- 计算的是旧 DLL，上传的是重新编译的 DLL。
-- 清单的 `File` 指向另一个文件，或文件更新后没有同步更新清单。
-
-Git 可能转换换行符，因此本地检查一致不等于远端一致。
-发生下载校验失败时，应下载 `File` 指向的原始文件，再用 `Get-FileHash` 检查。
-
-## 发布与更新
-
-1. 完成模块修改和必要的编译检查，确定最终上传文件。
-2. 计算该文件的 SHA256。
-3. 提高清单中的 `Version`，更新 `Sha256`；地址变化时同步更新 `File`。
-4. 将模块文件和清单一起提交、上传。
-5. 在 Omni 中刷新仓库，验证下载、加载和配置保存。
-
-只修改 `Sha256` 而不提高 `Version`，不会触发已安装模块的版本更新。
-重新编译或修改文件后，应重新计算摘要。
-推荐将下载地址固定到提交或独立版本目录，减少清单与文件发布时序不一致的问题。
-
-Omni 启动时及每六小时刷新清单，也可在设置中手动刷新。
-开启自动更新后，只下载已安装模块的更高版本，下次启动 Omni 时应用。
-更新编译或构造加载失败时恢复旧文件；这不代表能检测模块所有运行时错误。
-卸载的模块不会因普通刷新而自动重装。
-
-## 本地存储
-
-在线下载文件和仓库记录位于卫月提供的 Omni 配置目录下的 `TreeHouseOnline`。
-文件按仓库和模块的哈希目录隔离；`repositories.json` 保存来源、缓存清单和版本记录。
-
-用户模块配置沿用 `TreeHouse` 存储。更新只替换程序文件，卸载默认保留用户配置。
+旧版模块会被拒绝加载。升级时需要替换基类、增加接口声明、迁移生命周期、补齐简体词条，再重新编译并更新清单。
