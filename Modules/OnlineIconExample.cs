@@ -19,9 +19,8 @@ public sealed class OnlineIconExample : OmniModuleBase
         Commands = [new("OpenIcon", OmniCommandCatalog.FormatModule(nameof(OnlineIconExample), "icon"))]
     };
 
-    public override ModuleLocalization Localization { get; } = new()
-    {
-        SimplifiedChinese = new Dictionary<string, string>
+    public override ModuleLocalization Localization { get; } = ModuleLocalization.Create(
+        new Dictionary<string, string>
         {
             ["Title"] = "在线模块示范",
             ["Description"] = "选择图标并保存图标 ID。",
@@ -29,8 +28,7 @@ public sealed class OnlineIconExample : OmniModuleBase
             ["IconID"] = "图标 ID：{0}",
             ["SelectIcon"] = "选择图标",
             ["ClearIcon"] = "清除图标"
-        }
-    };
+        });
 
     private Settings config = new();
 

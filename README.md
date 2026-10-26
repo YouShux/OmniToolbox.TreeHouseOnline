@@ -46,13 +46,15 @@ https://github.com/YouShux/OmniToolbox.TreeHouseOnline
 - 配置使用内嵌 `Settings`，宿主绑定的成员命名为 `config`。保持已发布的 JSON 键不变，不在构造函数中保存配置引用或启动业务。
 - `.dll` 使用当前 Omni 的 Common 及实际用到的 TreeTools、TreeToolKit 等依赖编译，不把公共库打包进模块。引用旧 Omni 工具或 Omen 原任务类型的 DLL 会被拒载。
 
-### 3. Localization 与简繁转换
+### 3. Localization 与语言完整性
 
 - 窗口、按钮、提示、通知和命令说明等用户可见文字不得硬编码。
-- `Localization` 必填，`Title`、`Description` 及模块实际使用的词条全部写入 `SimplifiedChinese`。
+- `Localization` 必填，通过 `ModuleLocalization.Create(source, translations)` 创建；`Title`、`Description` 及模块实际使用的词条全部写入简体 `source`。
 - 模块内使用 `OmniLoc.Get(this, key)`；公共控件文字使用 `OmniLoc.Get(key)`。
 - `Info.Commands` 中引用的说明键必须存在于模块词条中。
-- 作者只需维护一份简体词条，繁体由 Omni 自动转换；下面的完整示例就是唯一示范代码。
+- 作者只需维护一份简体词条，宿主在登记前生成并校验完整繁体；英文、日文、德文、法文可暂不填写。
+- 可选 `translations` 类型为 `IReadOnlyDictionary<UILanguage, IReadOnlyDictionary<string, string>>`；未完成的词库允许缺项或空值，只有全部键非空且占位符正确时才开放该语言的模块入口。
+- 查询严格使用所选语言，缺项或空译文会明确报错。简体和生成的繁体均不可为空，其他语言不自动填充简体。
 
 ### 4. 组织多模块仓库
 
@@ -71,11 +73,11 @@ TreeHouseOnline/
 - 文件名、类型名和清单 `InternalName` 保持一致。
 - 一个在线 `.cs` 或 `.dll` 只能包含一个可实例化模块。
 - `.cs` 模式按文件独立编译，helper 类型应放在同一文件中；需要跨文件组织时使用 `.dll`。
-- 在线作者词条放在模块的 `Localization.SimplifiedChinese` 中，不放入官方 `Localizations` 仓库。
+- 在线作者词条通过模块的 `ModuleLocalization.Create` 交付，不放入官方 `Localizations` 仓库。
 - 模块专用配置、面板、节点、词条和 helper 放在对应模块文件或 DLL 内。
 - `Examples/` 中的教学代码不加入发布清单。
 
-`Localization` 是模块类的一部分，不是单独下载的 Loc 文件。增加“选择图标”文字时，在 `SimplifiedChinese` 中加入 `["SelectIcon"] = "选择图标"`，界面通过 `OmniLoc.Get(this, "SelectIcon")` 读取。后续新增文字时继续增加键和值即可。`.cs` 模式不能引用仓库中的另一份 Loc `.cs` 文件；`.dll` 模式可以把词条拆到自己的源码文件或嵌入资源中，但最终必须由模块的 `Localization` 属性返回。
+`Localization` 是模块类的一部分，不是单独下载的 Loc 文件。增加“选择图标”文字时，在简体 `source` 中加入 `["SelectIcon"] = "选择图标"`，界面通过 `OmniLoc.Get(this, "SelectIcon")` 读取。后续新增文字时继续增加键和值即可。`.cs` 模式不能引用仓库中的另一份 Loc `.cs` 文件；`.dll` 模式可以把词条拆到自己的源码文件或嵌入资源中，但最终必须由模块的 `Localization` 属性返回。
 
 ### 5. 不要打包宿主依赖
 
@@ -89,7 +91,7 @@ TreeHouseOnline/
 
 ### 6. 参考完整模块
 
-以下完整示例与 [OnlineIconExample.cs](Modules/OnlineIconExample.cs) 一致，发布版本为 **2.0.1**。示例只填写 `SimplifiedChinese`，繁体由 Omni 自动生成。
+以下完整示例与 [OnlineIconExample.cs](Modules/OnlineIconExample.cs) 一致，发布版本为 **2.0.1**。示例只填写简体 `source`，繁体由 Omni 自动生成。
 
 ```csharp
 using System;
@@ -113,9 +115,8 @@ public sealed class OnlineIconExample : OmniModuleBase
         Commands = [new("OpenIcon", OmniCommandCatalog.FormatModule(nameof(OnlineIconExample), "icon"))]
     };
 
-    public override ModuleLocalization Localization { get; } = new()
-    {
-        SimplifiedChinese = new Dictionary<string, string>
+    public override ModuleLocalization Localization { get; } = ModuleLocalization.Create(
+        new Dictionary<string, string>
         {
             ["Title"] = "在线模块示范",
             ["Description"] = "选择图标并保存图标 ID。",
@@ -123,8 +124,7 @@ public sealed class OnlineIconExample : OmniModuleBase
             ["IconID"] = "图标 ID：{0}",
             ["SelectIcon"] = "选择图标",
             ["ClearIcon"] = "清除图标"
-        }
-    };
+        });
 
     private Settings config = new();
 
@@ -176,7 +176,7 @@ public sealed class OnlineIconExample : OmniModuleBase
 - 停用时，宿主先关闭入口并等待任务退出，再调用 `OnStop()`，最后释放本次启用的资源。`OnDestroy()` 只处理实例最终释放。
 - 自停用调用 `RequestEnabled(false)` 后立即返回。生命周期钩子和托管任务不能等待自身停用或同步阻塞异步操作。
 
-完整用法见 [OnlineLifecycleExample.cs](Examples/OnlineLifecycleExample.cs)。语言切换只刷新文字、别名和搜索缓存，不启停业务模块。
+完整用法见 [OnlineLifecycleExample.cs](Examples/OnlineLifecycleExample.cs)。语言切换刷新文字、别名和搜索缓存。未提供当前语言完整词库的模块显示“尚未翻译”，设置与命令入口暂停，运行中的模块暂时停用；切回支持的语言后按原启用意愿恢复。
 
 ## 发布清单
 
@@ -188,20 +188,24 @@ public sealed class OnlineIconExample : OmniModuleBase
   "Modules": [
     {
       "InternalName": "OnlineIconExample",
-      "Name": "在线模块示范",
       "Author": "YouShu",
-      "Description": "选择图标并保存图标 ID。",
       "Version": "2.0.1",
       "ApiVersion": 1,
       "MinimumOmniVersion": "1.1.8.2",
       "File": "Modules/OnlineIconExample.cs",
-      "Sha256": "B0094B16EC454A4CD08476027730BBFF8EF1647751716F726FF94AA30BFD1C71"
+      "Sha256": "8B8A5A6E7CAB95C7CA970DDF2CDA3AC41EE80FA538F783E28D2B9A119538D7DE",
+      "Localization": {
+        "Source": {
+          "Title": "在线模块示范",
+          "Description": "选择图标并保存图标 ID。"
+        }
+      }
     }
   ]
 }
 ```
 
-`InternalName` 是模块类型名，`File` 是相对仓库根目录的文件路径，`Sha256` 对应最终文件字节。作者支持链接、反馈地址和预览图可选。
+`InternalName` 是模块类型名，`File` 是相对仓库根目录的文件路径，`Sha256` 对应最终文件字节。`Localization.Source` 必须包含非空的 `Title`、`Description`；`Localization.Translations` 可省略，或以 `English`、`Japanese`、`German`、`French` 为语言键填写相同词条。
 
 三个版本字段：
 
@@ -209,7 +213,7 @@ public sealed class OnlineIconExample : OmniModuleBase
 - `Version`：模块自身版本；本示例为 `2.0.1`，发布修改时递增。
 - `MinimumOmniVersion`：最低宿主版本；新版接口填写 `1.1.8.2`，实际使用更高版本接口时相应提高。
 
-`SchemaVersion` 是清单格式版本，保持 `1`。本地与在线模块使用同一接口校验。
+`SchemaVersion` 是清单格式版本，必须为 `1`。本地与在线模块使用同一接口校验。
 
 ## 发布更新
 
@@ -225,4 +229,4 @@ public sealed class OnlineIconExample : OmniModuleBase
 
 文件内容、换行、编码或 DLL 重新编译后，都必须重新计算摘要。
 
-旧版模块会被拒绝加载。升级时需要替换基类、增加接口声明、迁移生命周期、补齐简体词条，再重新编译并更新清单。
+模块必须使用 API 1，并通过 `ModuleLocalization.Create` 提供简体源文，重新编译后更新清单和摘要。Schema 1 清单只接受 `Localization` 结构。旧安装描述无法读取时保留原文件与用户配置，提示按当前格式重新建立仓库记录。

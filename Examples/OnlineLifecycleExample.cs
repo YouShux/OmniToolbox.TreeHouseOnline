@@ -22,17 +22,15 @@ public sealed class OnlineLifecycleExample : OmniModuleBase
         Author = "YouShu"
     };
 
-    public override ModuleLocalization Localization { get; } = new()
-    {
-        SimplifiedChinese = new Dictionary<string, string>
+    public override ModuleLocalization Localization { get; } = ModuleLocalization.Create(
+        new Dictionary<string, string>
         {
             ["Title"] = "生命周期示例",
             ["Description"] = "观察每次启用期间的事件和托管任务计数。",
             ["FrameworkUpdates"] = "本次启用的框架更新次数：{0}",
             ["BackgroundTicks"] = "本次启用的后台计时次数：{0}",
             ["Stop"] = "临时停用"
-        }
-    };
+        });
 
     private long frameworkUpdates;
     private long backgroundTicks;

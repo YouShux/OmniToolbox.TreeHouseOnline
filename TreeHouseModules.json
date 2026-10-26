@@ -3,14 +3,18 @@
   "Modules": [
     {
       "InternalName": "OnlineIconExample",
-      "Name": "在线模块示范",
       "Author": "YouShu",
-      "Description": "选择图标并保存图标 ID。",
       "Version": "2.0.1",
       "ApiVersion": 1,
       "MinimumOmniVersion": "1.1.8.2",
       "File": "Modules/OnlineIconExample.cs",
-      "Sha256": "B0094B16EC454A4CD08476027730BBFF8EF1647751716F726FF94AA30BFD1C71"
+      "Sha256": "8B8A5A6E7CAB95C7CA970DDF2CDA3AC41EE80FA538F783E28D2B9A119538D7DE",
+      "Localization": {
+        "Source": {
+          "Title": "在线模块示范",
+          "Description": "选择图标并保存图标 ID。"
+        }
+      }
     }
   ]
 }
