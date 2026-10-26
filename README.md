@@ -168,7 +168,7 @@ public sealed class OnlineIconExample : OmniModuleBase
 
 构造函数只准备元数据和普通状态。事件、Hook、节点和后台工作在 `OnStart(FeatureLifetime activation)` 中接入，作用域类型导入 `using TreeTools.Lifecycle;`；没有对应工作时无需重写生命周期方法。
 
-- 接入事件前用 `activation.OnStopping` 登记解绑；同步资源用 `activation.Add`，异步资源用 `activation.AddAsync(resource.DisposeAsync)` 登记释放。异步释放先取消并等待工作退出，再释放依赖。
+- 接入事件前用 `activation.OnStopping` 登记解绑；`IDisposable` 资源用 `activation.Add(resource)`，`IAsyncDisposable` 资源用 `activation.AddAsync(resource.DisposeAsync)` 登记释放。异步释放先取消并等待工作退出，再释放依赖。
 - 必须完成的异步初始化使用 `activation.TrackStartup(task)`；持续任务使用 `Track` 或 `RunBackground`，并响应 `activation.CancellationToken`。
 - 游戏对象和原生 UI 操作在主线程执行。模块由宿主管理，不自行销毁或卸载。
 - 大量初始化使用 `TreeTools.Threading.FrameworkWorkScheduler.RunAsync(items, operation, activation.CancellationToken)` 分帧执行，单项工作保持轻量；游戏文本在框架线程提取，纯文件解析和计算可放后台。
