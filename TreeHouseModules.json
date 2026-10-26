@@ -4,6 +4,7 @@
     {
       "InternalName": "OnlineIconExample",
       "Author": "YouShu",
+      "RepositoryURL": "https://github.com/YouShux/OmniToolbox.TreeHouseOnline",
       "Version": "2.0.1",
       "ApiVersion": 1,
       "MinimumOmniVersion": "1.1.8.2",

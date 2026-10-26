@@ -2,6 +2,8 @@
 
 本仓库同时提供可运行的模块示例、生命周期示例和仓库清单格式。当前模块接口为 **API 1**，最低宿主为 Omni **1.1.8.2**。
 
+如果不打算公开源码，欢迎先联系我讨论接入方式。确认后整合至 Omni 本体，统一混淆发布。
+
 ## 系统架构
 
 ```text
@@ -38,6 +40,8 @@ https://github.com/YouShux/OmniToolbox.TreeHouseOnline
 支持公开仓库中的 `.cs`、`.dll`。首次安装后默认关闭，在“树树妙妙屋 → 在线”中手动启用。模块拥有与 Omni 相同的运行权限，请安装可信来源。
 
 地址支持 GitHub 仓库、`blob` 文件和 `raw.githubusercontent.com` 清单。GitHub API 不可用时，仓库地址会自动回退到 raw `main`、`master`；直接填写 raw 清单时保持精确来源。
+
+清单回退不豁免公开仓库校验。安装、更新及已安装在线模块加载前，Omni 会匿名确认 GitHub 仓库存在且公开；网络故障或 API 限流等导致无法确认时，阻止本次加载并提示重试，保留原文件、配置和启用意愿。
 
 ### 2. 写出可加载的模块
 
@@ -191,6 +195,7 @@ public sealed class OnlineIconExample : OmniModuleBase
     {
       "InternalName": "OnlineIconExample",
       "Author": "YouShu",
+      "RepositoryURL": "https://github.com/YouShux/OmniToolbox.TreeHouseOnline",
       "Version": "2.0.1",
       "ApiVersion": 1,
       "MinimumOmniVersion": "1.1.8.2",
@@ -208,6 +213,8 @@ public sealed class OnlineIconExample : OmniModuleBase
 ```
 
 `InternalName` 是模块类型名，`File` 是相对仓库根目录的文件路径，`Sha256` 对应最终文件字节。`Localization.Source` 必须包含非空的 `Title`、`Description`；`Localization.Translations` 可省略，或以 `English`、`Japanese`、`German`、`French` 为语言键填写相同词条。
+
+每个模块必须填写非空 `Author`、完整 `RepositoryURL` 及示例中的其余必填字段。`RepositoryURL` 使用 `https://github.com/owner/repository` ，须与清单及模块文件实际所属仓库一致；缺少信息、仓库不存在或未公开时不允许加载。公开仓库仍需由用户判断代码是否可信。
 
 三个版本字段：
 
