@@ -160,7 +160,7 @@ public sealed class OnlineIconExample : OmniModuleBase
 }
 ```
 
-`DrawSettings()` 返回 `true` 时，宿主保存配置；返回 `false` 表示没有变更。`ResetSettings()` 无实际变更时也必须返回 `false`。图标选择回调执行后会保存配置。
+`DrawSettings()` 仅在实际变更时返回 `true`，宿主保存当前模块配置；输入框和拖动控件在编辑结束后报告变更。`ResetSettings()` 无实际变更时也必须返回 `false`。图标选择回调执行后会保存当前模块配置。
 
 命令通过 `Info.Commands` 声明，`TryHandleCommand` 返回 `true` 仅表示命令已处理，不会自动保存配置。
 
@@ -168,9 +168,11 @@ public sealed class OnlineIconExample : OmniModuleBase
 
 构造函数只准备元数据和普通状态。事件、Hook、节点和后台工作在 `OnStart(FeatureLifetime activation)` 中接入，作用域类型导入 `using TreeTools.Lifecycle;`；没有对应工作时无需重写生命周期方法。
 
-- 接入事件前用 `activation.OnStopping` 登记解绑；取得资源后立即用 `activation.Add` 或 `AddAsync` 登记释放。
+- 接入事件前用 `activation.OnStopping` 登记解绑；同步资源用 `activation.Add`，异步资源用 `activation.AddAsync(resource.DisposeAsync)` 登记释放。异步释放先取消并等待工作退出，再释放依赖。
 - 必须完成的异步初始化使用 `activation.TrackStartup(task)`；持续任务使用 `Track` 或 `RunBackground`，并响应 `activation.CancellationToken`。
 - 游戏对象和原生 UI 操作在主线程执行。模块由宿主管理，不自行销毁或卸载。
+- 大量初始化使用 `TreeTools.Threading.FrameworkWorkScheduler.RunAsync(items, operation, activation.CancellationToken)` 分帧执行，单项工作保持轻量；游戏文本在框架线程提取，纯文件解析和计算可放后台。
+- 输入与节点更新优先使用对应事件；事件覆盖不足时保留必要检查，状态未变直接返回。
 - 分步队列使用 `TreeTools.Threading.TaskHelper`，创建后立即 `activation.Add(helper)`。宿主会等待任务和取消回调实际结束。
 - 普通启停复用实例，每次启用都会获得新的 `FeatureLifetime`，需要在 `OnStart` 重置该次启用状态。
 - 停用时，宿主先关闭入口并等待任务退出，再调用 `OnStop()`，最后释放本次启用的资源。`OnDestroy()` 只处理实例最终释放。
