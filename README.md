@@ -95,7 +95,7 @@ TreeHouseOnline/
 
 ### 6. 参考完整模块
 
-以下完整示例与 [OnlineIconExample.cs](Modules/OnlineIconExample.cs) 一致，发布版本为 **2.0.1**。示例只填写简体 `source`，繁体由 Omni 自动生成。
+以下示例演示模块接口、配置与公共控件的用法；可运行的发布模块见 [OnlineIconExample.cs](Modules/OnlineIconExample.cs)。示例只填写简体 `source`，繁体由 Omni 自动生成。
 
 ```csharp
 using System;
@@ -106,6 +106,7 @@ using OmniToolbox.Common.Module.Abstractions;
 using OmniToolbox.Common.Module.Enums;
 using OmniToolbox.Common.Module.Models;
 using OmniToolbox.UI;
+using OmniToolbox.UI.Controls;
 
 namespace OmniToolbox.TreeHouseOnline;
 
@@ -144,10 +145,10 @@ public sealed class OnlineIconExample : OmniModuleBase
     public override bool DrawSettings()
     {
         ImGui.TextUnformatted(string.Format(OmniLoc.Get(this, "IconID"), config.IconID));
-        if (ImGui.Button(OmniLoc.Get(this, "SelectIcon")))
+        if (OmniControls.SmallButton(OmniLoc.Get(this, "SelectIcon"), false))
             OpenIconBrowser(iconID => config.IconID = iconID);
         ImGui.SameLine();
-        return ImGui.Button(OmniLoc.Get(this, "ClearIcon")) && ResetSettings();
+        return OmniControls.SmallButton(OmniLoc.Get(this, "ClearIcon"), false) && ResetSettings();
     }
 
     public override bool ResetSettings()
@@ -167,6 +168,14 @@ public sealed class OnlineIconExample : OmniModuleBase
 `DrawSettings()` 仅在实际变更时返回 `true`，宿主保存当前模块配置；输入框和拖动控件在编辑结束后报告变更。`ResetSettings()` 无实际变更时也必须返回 `false`。图标选择回调执行后会保存当前模块配置。
 
 命令通过 `Info.Commands` 声明，`TryHandleCommand` 返回 `true` 仅表示命令已处理，不会自动保存配置。
+
+## 公共界面与主题
+
+在线模块优先使用 Omni 公共组件，使配置界面跟随宿主主题。通过 `using OmniToolbox.UI.Controls;` 导入 `OmniControls`，用于按钮、复选框、单选框、输入框、滑条、下拉框、折叠栏和提示；地图选择等已有组件也应优先复用。表格、布局和文本可继续使用 ImGui。
+
+下拉框使用 `OmniControls.Combo` 配合 `using` 管理作用域，或在 `OmniControls.BeginCombo` 成功后调用 `ImGui.EndCombo()`。`ImRaii` 只管理作用域；复用 Omen 等专用选择器时，需检查其内部控件是否经过 Omni 主题入口，单纯继承或设置 ImGui 样式不能代替主题适配。
+
+公共组件缺少所需能力时，使用宿主共享主题完成最小适配，边框和阴影沿用公共绘制能力。核对所选主题的圆角、边框、阴影、悬停、缩放和点击范围；阴影由主题决定。
 
 ## 生命周期与资源
 
