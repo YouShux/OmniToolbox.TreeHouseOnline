@@ -177,6 +177,21 @@ public sealed class OnlineIconExample : OmniModuleBase
 
 公共组件缺少所需能力时，使用宿主共享主题完成最小适配，边框和阴影沿用公共绘制能力。核对所选主题的圆角、边框、阴影、悬停、缩放和点击范围；阴影由主题决定。
 
+## 打开物品信息窗口
+
+`OmniToolbox.UI.OpenItemInformation(uint itemID)` 接收基础物品 ID，复用、展开并置前 Omni 的物品信息窗口，主窗口无需打开。
+
+在模块自己的托管异步任务中调用，导入 `System.Threading.Tasks` 和 `OmniToolbox.Host`：
+
+```csharp
+var open = DalamudServices.PluginInterface.GetIpcSubscriber<uint, Task<string>>(
+    "OmniToolbox.UI.OpenItemInformation");
+if (open.HasFunction)
+    await open.InvokeFunc(40105U);
+```
+
+返回字段见[物品信息 IPC 文档](https://github.com/YouShux/OmniToolbox.TreePublic/blob/main/IPC/物品信息.md)。完整调用与异常处理见 [OnlineItemInformationExample.cs](Examples/OnlineItemInformationExample.cs)，示例命令为 `/omni OnlineItemInformationExample 40105`。
+
 ## 生命周期与资源
 
 构造函数只准备元数据和普通状态。事件、Hook、节点和后台工作在 `OnStart(FeatureLifetime activation)` 中接入，作用域类型导入 `using TreeTools.Lifecycle;`；没有对应工作时无需重写生命周期方法。
