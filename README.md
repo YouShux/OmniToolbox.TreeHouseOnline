@@ -56,9 +56,10 @@ https://github.com/YouShux/OmniToolbox.TreeHouseOnline
 - `Localization` 必填，通过 `ModuleLocalization.Create(source, translations)` 创建；`Title`、`Description` 及模块实际使用的词条全部写入简体 `source`。
 - 模块内使用 `OmniLoc.Get(this, key)`；公共控件文字使用 `OmniLoc.Get(key)`。
 - `Info.Commands` 中引用的说明键必须存在于模块词条中。
-- 作者只需维护一份简体词条，宿主在登记前生成并校验完整繁体；英文、日文、德文、法文可暂不填写。
-- 可选 `translations` 类型为 `IReadOnlyDictionary<UILanguage, IReadOnlyDictionary<string, string>>`；未完成的词库允许缺项或空值，只有全部键非空且占位符正确时才开放该语言的模块入口。
-- 查询严格使用所选语言，缺项或空译文会明确报错。简体和生成的繁体均不可为空，其他语言不自动填充简体。
+- 作者只需维护一份简体词条，宿主在登记前生成并校验完整繁体；英语、韩语、日语可暂不填写，不需要为适配新增语言修改模块代码。
+- 可选 `translations` 类型为 `IReadOnlyDictionary<UILanguage, IReadOnlyDictionary<string, string>>`；可完全省略，也可只填写英语、韩语、日语中的部分语言。未完成的词库允许缺项或空值。
+- 当前语言有完整译文时显示对应语言；没有时自动回退简体，繁体环境使用宿主生成的繁体。模块卡、设置、命令和介绍继续可用，不因缺少译文暂停。
+- 简体和自动生成的繁体必须完整非空；英语、韩语、日语不自动生成。查询时仅当当前语言与简繁回退词库都缺少键才报错。
 
 ### 4. 组织多模块仓库
 
@@ -206,7 +207,7 @@ if (open.HasFunction)
 - 停用时，宿主先关闭入口并等待任务退出，再调用 `OnStop()`，最后释放本次启用的资源。`OnDestroy()` 只处理实例最终释放。
 - 自停用调用 `RequestEnabled(false)` 后立即返回。生命周期钩子和托管任务不能等待自身停用或同步阻塞异步操作。
 
-完整用法见 [OnlineLifecycleExample.cs](Examples/OnlineLifecycleExample.cs)。语言切换刷新文字、别名和搜索缓存。未提供当前语言完整词库的模块显示“尚未翻译”，设置与命令入口暂停，运行中的模块暂时停用；切回支持的语言后按原启用意愿恢复。
+完整用法见 [OnlineLifecycleExample.cs](Examples/OnlineLifecycleExample.cs)。语言切换刷新文字、别名和搜索缓存。当前语言有完整词库时显示对应译文，否则回退简体或繁体，模块继续按原启用状态运行。
 
 ## 发布清单
 
@@ -236,7 +237,7 @@ if (open.HasFunction)
 }
 ```
 
-`InternalName` 是模块类型名，`File` 是相对仓库根目录的文件路径，`Sha256` 对应最终文件字节。`Localization.Source` 必须包含非空的 `Title`、`Description`；`Localization.Translations` 可省略，或以 `English`、`Japanese`、`German`、`French` 为语言键填写相同词条。
+`InternalName` 是模块类型名，`File` 是相对仓库根目录的文件路径，`Sha256` 对应最终文件字节。`Localization.Source` 必须包含非空的 `Title`、`Description`；`Localization.Translations` 可省略，或以 `English`、`Korean`、`Japanese` 为语言键填写相同词条。缺少目标语言时，在线模块介绍回退到简体或繁体。
 
 每个模块必须填写非空 `Author`、完整 `RepositoryURL` 及示例中的其余必填字段。`RepositoryURL` 使用 `https://github.com/owner/repository` ，须与清单及模块文件实际所属仓库一致；缺少信息、仓库不存在或未公开时不允许加载。公开仓库仍需由用户判断代码是否可信。
 
@@ -262,4 +263,4 @@ if (open.HasFunction)
 
 文件内容、换行、编码或 DLL 重新编译后，都必须重新计算摘要。
 
-模块必须使用 API 1，并通过 `ModuleLocalization.Create` 提供简体源文，重新编译后更新清单和摘要。Schema 1 清单只接受 `Localization` 结构。旧安装描述无法读取时保留原文件与用户配置，提示按当前格式重新建立仓库记录。
+模块必须使用 API 1，并通过 `ModuleLocalization.Create` 提供简体源文，重新编译后更新清单和摘要。英语、韩语、日语译文可选，缺失时回退简体或繁体。Schema 1 清单只接受 `Localization` 结构。旧安装描述无法读取时保留原文件与用户配置，提示按当前格式重新建立仓库记录。
